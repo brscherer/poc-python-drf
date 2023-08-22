@@ -1,3 +1,6 @@
+import requests
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -103,3 +106,21 @@ class TodoDetailApiView(APIView):
             {"res": "Object deleted!"},
             status=status.HTTP_200_OK
         )
+        
+class AnimeQuoteApiView(APIView):
+    # add permission to check if user is authenticated
+    permission_classes = [permissions.IsAuthenticated]
+
+    # Cache for 10 seconds
+    @method_decorator(cache_page(10))
+    # 1. List all
+    def get(self, request):
+        '''
+        List all the todo items for given requested user
+        '''
+        try:
+            response = requests.get("https://animechan.xyz/api/random")
+        except Exception as e:
+            return Response({"res": "Error connecting to External API", "e": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+        
+        return Response(response.json(), status=status.HTTP_200_OK)
