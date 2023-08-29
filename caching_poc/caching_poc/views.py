@@ -1,4 +1,7 @@
 import requests
+import requests_cache
+
+import time
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework.views import APIView
@@ -7,6 +10,8 @@ from rest_framework import status
 from rest_framework import permissions
 from .models import Todo
 from .serializers import TodoSerializer
+
+# requests_cache.install_cache(cache_name='externals_cache', backend='redis', expire_after=180)
 
 
 class TodoListApiView(APIView):
@@ -112,15 +117,22 @@ class AnimeQuoteApiView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     # Cache for 10 seconds
-    @method_decorator(cache_page(10))
+    # @method_decorator(cache_page(10))
     # 1. List all
     def get(self, request):
         '''
         List all the todo items for given requested user
         '''
+        # Cache expires after 10 seconds
+        session = requests_cache.CachedSession(expire_after=10)
         try:
-            response = requests.get("https://animechan.xyz/api/random")
+            # disables cache
+            # with session.cache_disabled(): 
+                response = session.get("https://cat-fact.herokuapp.com/facts")
+            # response = requests.get("https://cat-fact.herokuapp.com/facts")
         except Exception as e:
             return Response({"res": "Error connecting to External API", "e": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
         
+        now = time.ctime(int(time.time()))
+        print("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
         return Response(response.json(), status=status.HTTP_200_OK)
